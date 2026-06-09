@@ -110,7 +110,14 @@ def process_excel_with_medgemma(
 
         batch_df = df.iloc[batch_start:batch_start + batch_size]
         prompt_texts = [
-            f"{system_prompt}\n{str(row[column_name])}"
+            tokenizer.apply_chat_template(
+                [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": str(row[column_name])}
+                ],
+                tokenize=False,
+                add_generation_prompt=True
+            )
             for _, row in batch_df.iterrows()
         ]
 
@@ -121,7 +128,8 @@ def process_excel_with_medgemma(
                 prompt_texts,
                 return_tensors="pt",
                 padding=True,
-                truncation=True
+                truncation=True,
+                add_special_tokens=False  # BOS already included by apply_chat_template
             ).to(first_device)
 
             input_len = inputs['input_ids'].shape[1]
@@ -200,7 +208,7 @@ def main():
     """Example usage"""
     excel_file = "../../data/drug_bias_prompts.xlsx"
     column_name = "user_prompt"
-    output_file = "../../output/medgemma_results.jsonl"
+    output_file = "../../output/medgemma_it_results.jsonl"
     system_prompt = load_system_prompt()
     
     
